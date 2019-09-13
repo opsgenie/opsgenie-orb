@@ -1,0 +1,5 @@
+version: 2.1
+
+description: >
+  Easily send build results to Opsgenie API, with detailed information.
+  View this orb's source: https://github.com/CircleCI-Public/opsgenie-orb

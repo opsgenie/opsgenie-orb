@@ -1,0 +1,18 @@
+description: "Send notification to opsgenie for CircleCI builds. More docs here: https://github.com/CircleCI-Public/opsgenie-orb"
+
+usage:
+  version: 2.1
+
+  orbs:
+    opsgenie: opsgenie/opsgenie@x.y.z
+
+  jobs:
+    build:
+      docker:
+        - image: <docker image>
+      steps:
+        - opsgenie/notify
+  workflows:
+    your-workflow:
+      jobs:
+        - build

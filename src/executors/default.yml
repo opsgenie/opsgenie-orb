@@ -1,0 +1,11 @@
+resource_class: small
+description: |
+  The default executor for jobs in Opsgenie orb. Specify your own Docker image or use the default (cimg/base).
+docker:
+  - image: <<parameters.docker-image>>
+parameters:
+  docker-image:
+    default: cimg/base
+    description: |
+      Docker image to use in this executor, defaults to cimg/base
+    type: string

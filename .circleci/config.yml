@@ -1,0 +1,119 @@
+commands:
+  notify:
+    description: Send build results to Opsgenie API, with detailed information
+    parameters:
+      endpoint:
+        default: OPSGENIE_WEBHOOK
+        description: Enter either your Full URL value that you copied in Opsgenie
+          Integration Page
+        type: env_var_name
+      on_failure:
+        default: false
+        description: Failure information of circleci build
+        type: boolean
+      on_success:
+        default: true
+        description: Success information of circleci build
+        type: boolean
+    steps:
+    - run:
+        command: |
+          echo '{}' | jq '{
+           "payload": {
+             "workflow_job_id": env.CIRCLE_WORKFLOW_JOB_ID,
+             "build_num": env.CIRCLE_BUILD_NUM,
+             "node_version": env.NODE_VERSION,
+             "hostname": env.HOSTNAME,
+             "node_total": env.CIRCLE_NODE_TOTAL,
+             "workflow_upstream_job_ids": env.CIRCLE_WORKFLOW_UPSTREAM_JOB_IDS,
+             "internal_scratch": env.CIRCLE_INTERNAL_SCRATCH,
+             "project_username": env.CIRCLE_PROJECT_USERNAME,
+             "npm_config_loglevel": env.NPM_CONFIG_LOGLEVEL,
+             "internal_task_data": env.CIRCLE_INTERNAL_TASK_DATA,
+             "no_proxy": env.NO_PROXY,
+             "node_index": env.CIRCLE_NODE_INDEX,
+             "compare_url": env.CIRCLE_COMPARE_URL,
+             "branch": env.CIRCLE_BRANCH,
+             "ssh_auth_sock": env.SSH_AUTH_SOCK,
+             "job_name": env.CIRCLE_JOB,
+             "working_directory": env.CIRCLE_WORKING_DIRECTORY,
+             "path": env.PATH,
+             "workflow_workspace_id": env.CIRCLE_WORKFLOW_WORKSPACE_ID,
+             "username": env.CIRCLE_USERNAME,
+             "previous_build_num": env.CIRCLE_PREVIOUS_BUILD_NUM,
+             "pwd": env.PWD,
+             "stage": env.CIRCLE_STAGE,
+             "lang": env.LANG,
+             "build_url": env.CIRCLE_BUILD_URL,
+             "workflow_id": env.CIRCLE_WORKFLOW_ID,
+             "circleci": env.CIRCLECI,
+             "shlvl": env.SHLVL,
+             "home": env.HOME,
+             "yarn_version": env.YARN_VERSION,
+             "vcs_revision": env.CIRCLE_SHA1,
+             "ci": env.CI,
+             "repository_url": env.CIRCLE_REPOSITORY_URL,
+             "internal_config": env.CIRCLE_INTERNAL_CONFIG,
+             "bash_env": env.BASH_ENV,
+             "shell_env": env.CIRCLE_SHELL_ENV,
+             "debian_frontend": env.DEBIAN_FRONTEND,
+             "reponame": env.CIRCLE_PROJECT_REPONAME,
+             "outcome": "unknown"
+           }
+           }' > /tmp/raw-webhook.json
+        name: Bundle build info into webhook payload
+        when: always
+    - when:
+        condition: <<parameters.on_success>>
+        steps:
+        - run:
+            command: |
+              cat /tmp/raw-webhook.json | jq '.payload.outcome="success"' > /tmp/webhook.json
+              curl -X POST -H"Content-Type:application/json" -d @/tmp/webhook.json $<<parameters.endpoint>>
+            name: Notify $<<parameters.endpoint>> with Success Webhook
+            when: on_success
+    - when:
+        condition: <<parameters.on_failure>>
+        steps:
+        - run:
+            command: |
+              cat /tmp/raw-webhook.json | jq '.payload.outcome="failed"'  > /tmp/webhook.json
+              curl -X POST -H"Content-Type:application/json" -d @/tmp/webhook.json $<<parameters.endpoint>>
+            name: Notify $<<parameters.endpoint>> with Failure Webhook
+            when: on_fail
+description: |
+  Easily send build results to Opsgenie API, with detailed information. View this orb's source: https://github.com/CircleCI-Public/opsgenie-orb
+examples:
+  notify:
+    description: 'Send notification to opsgenie for CircleCI builds. More docs here:
+      https://github.com/CircleCI-Public/opsgenie-orb'
+    usage:
+      jobs:
+        build:
+          docker:
+          - image: <docker image>
+          steps:
+          - opsgenie/notify
+      orbs:
+        opsgenie: opsgenie/opsgenie@x.y.z
+      version: 2.1
+      workflows:
+        your-workflow:
+          jobs:
+          - build
+executors:
+  default:
+    description: |
+      The default executor for jobs in Opsgenie orb. Specify your own Docker image or use the default (cimg/base).
+    docker:
+    - image: <<parameters.docker-image>>
+    parameters:
+      docker-image:
+        default: cimg/base
+        description: |
+          Docker image to use in this executor, defaults to cimg/base
+        type: string
+    resource_class: small
+jobs: {}
+version: 2.1
+
